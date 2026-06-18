@@ -849,12 +849,31 @@ async function executeSlideImageSearch() {
         div.innerHTML = `
           <img src="${img.url}" alt="${img.title}" onerror="this.src='https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=300'">
           <div class="copy-overlay">
-            <span>Copy Link</span>
+            <span>Copy Image</span>
           </div>
         `;
-        div.addEventListener('click', () => {
-          navigator.clipboard.writeText(img.url);
-          showToast("Image link copied to clipboard!");
+        div.addEventListener('click', async () => {
+          const overlayText = div.querySelector('.copy-overlay span');
+          const originalText = overlayText.textContent;
+          overlayText.textContent = "Copying...";
+          div.style.pointerEvents = 'none';
+          
+          try {
+            const res = await window.api.copyImageToClipboard(img.url);
+            if (res.success) {
+              showToast("Copied image to clipboard! You can paste (Ctrl+V) directly into Canva.");
+            } else {
+              navigator.clipboard.writeText(img.url);
+              showToast("Copied image link (Direct copy failed)");
+            }
+          } catch (err) {
+            console.error("Clipboard copy error:", err);
+            navigator.clipboard.writeText(img.url);
+            showToast("Copied image link (Error occurred)");
+          } finally {
+            overlayText.textContent = originalText;
+            div.style.pointerEvents = 'auto';
+          }
         });
         searchImageResults.appendChild(div);
       });

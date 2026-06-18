@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, clipboard, nativeImage } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const https = require('https');
@@ -244,6 +244,69 @@ ipcMain.handle('call-ai', async (event, { provider, apiKey, model, prompt }) => 
     return await callAiWithRetry(provider, apiKey, model, prompt);
   } catch (error) {
     console.error("AI Request Failed after retries:", error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Helper: Download raw image buffer (bypassing CORS and following redirects)
+function downloadImageBuffer(url) {
+  return new Promise((resolve, reject) => {
+    try {
+      const parsedUrl = new URL(url);
+      const protocol = parsedUrl.protocol === 'https:' ? require('https') : require('http');
+      const options = {
+        method: 'GET',
+        hostname: parsedUrl.hostname,
+        path: parsedUrl.pathname + parsedUrl.search,
+        port: parsedUrl.protocol === 'https:' ? 443 : 80,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        }
+      };
+
+      const req = protocol.request(options, (res) => {
+        // Handle redirect
+        if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+          // Resolve redirect URL relative to origin if needed
+          let redirectUrl = res.headers.location;
+          if (!redirectUrl.startsWith('http://') && !redirectUrl.startsWith('https://')) {
+            redirectUrl = new URL(redirectUrl, url).href;
+          }
+          downloadImageBuffer(redirectUrl).then(resolve).catch(reject);
+          return;
+        }
+
+        if (res.statusCode < 200 || res.statusCode >= 300) {
+          reject(new Error(`Failed to download image: ${res.statusCode}`));
+          return;
+        }
+
+        const chunks = [];
+        res.on('data', (chunk) => {
+          chunks.push(chunk);
+        });
+        res.on('end', () => {
+          resolve(Buffer.concat(chunks));
+        });
+      });
+
+      req.on('error', reject);
+      req.end();
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
+
+// IPC Handler: Copy image binary data to system clipboard
+ipcMain.handle('copy-image-to-clipboard', async (event, { url }) => {
+  try {
+    const buffer = await downloadImageBuffer(url);
+    const image = nativeImage.createFromBuffer(buffer);
+    clipboard.writeImage(image);
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to copy image to clipboard:", error);
     return { success: false, error: error.message };
   }
 });
