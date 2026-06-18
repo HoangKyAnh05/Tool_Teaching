@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TESOL AI Master - Lesson & Slide Material Generator</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-logo">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="logo-icon"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+        </div>
+        <div class="brand-info">
+          <h1>TESOL Master</h1>
+          <span>Lesson Plan Generator</span>
+        </div>
+      </div>
+
+      <!-- Interaction Stats / TESOL Indicator -->
+      <div class="tesol-badge">
+        <div class="badge-header">
+          <span class="badge-title">TESOL Standard</span>
+          <span class="badge-status">Active</span>
+        </div>
+        <div class="stat-row">
+          <span>Teacher Talk (TTT)</span>
+          <span class="value color-orange">20-30%</span>
+        </div>
+        <div class="stat-row">
+          <span>Student Talk (STT)</span>
+          <span class="value color-green">70-80%</span>
+        </div>
+        <div class="stat-row">
+          <span>S &rarr; S Interaction</span>
+          <span class="value color-blue">60%</span>
+        </div>
+      </div>
+
+      <!-- Navigation Menu -->
+      <nav class="nav-menu">
+        <button class="nav-btn active" data-tab="create">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+          Create Lesson Plan
+        </button>
+        <button class="nav-btn" data-tab="history">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          Saved Lessons
+          <span class="history-count" id="history-count-badge">0</span>
+        </button>
+        <button class="nav-btn" data-tab="settings">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+          API Settings
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <p>&copy; 2026 TESOL AI Master</p>
+        <small>Designed for Premium Educators</small>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      <!-- Create Tab -->
+      <section id="tab-create" class="tab-pane active">
+        <div class="tab-header">
+          <h2>Generate TESOL Lesson Plan</h2>
+          <p>Complete curriculum, active student scripts, activities, slides & classroom materials.</p>
+        </div>
+
+        <div class="content-grid">
+          <!-- Form Panel -->
+          <div class="card form-panel">
+            <div class="form-group">
+              <label for="lesson-topic">Lesson Topic / Theme</label>
+              <input type="text" id="lesson-topic" placeholder="e.g., At the Airport, Future of AI, Job Interview..." required>
+              <div class="suggestions">
+                <span class="suggestion-tag">At the Airport</span>
+                <span class="suggestion-tag">The Future of AI</span>
+                <span class="suggestion-tag">Ordering Food</span>
+                <span class="suggestion-tag">Healthy Lifestyle</span>
+                <span class="suggestion-tag">Tech & Gadgets</span>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="lesson-level">Target Level</label>
+                <select id="lesson-level">
+                  <option value="Beginner (A1-A2)">Beginner (A1-A2)</option>
+                  <option value="Intermediate (B1-B2)" selected>Intermediate (B1-B2)</option>
+                  <option value="Advanced (C1-C2)">Advanced (C1-C2)</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="lesson-duration">Class Duration</label>
+                <select id="lesson-duration">
+                  <option value="45 minutes">45 minutes</option>
+                  <option value="60 minutes">60 minutes</option>
+                  <option value="90 minutes" selected>90 minutes</option>
+                  <option value="120 minutes">120 minutes</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="lesson-skill">Core Skill & Methodology</label>
+              <select id="lesson-skill">
+                <option value="Speaking (PPP/Task-Based)">Speaking (PPP/Task-Based/Interactive)</option>
+                <option value="Listening (Pre/While/Post)">Listening (Pre/While/Post Active Listening)</option>
+                <option value="Reading (Skim/Scan/Jigsaw)">Reading (Skimming/Scanning/Jigsaw/Active)</option>
+                <option value="Writing (Process Writing)">Writing (Brainstorm/Plan/Draft/Peer Review)</option>
+                <option value="4-Skills Comprehensive">Comprehensive 4-Skills Integration</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="lesson-notes">Additional Context / Vocab list / Specific requests (Optional)</label>
+              <textarea id="lesson-notes" rows="4" placeholder="List any target vocabulary, grammar points, or special activity preferences (e.g. Include a debate, keep grammar focused on Past Simple, etc.)"></textarea>
+            </div>
+
+            <button id="btn-generate" class="btn btn-primary">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="spinner-icon hidden"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"/><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"/></svg>
+              <span>🚀 Generate TESOL Package</span>
+            </button>
+          </div>
+
+          <!-- Guide Card -->
+          <div class="card info-panel">
+            <h3>TESOL Lesson Plan Guide</h3>
+            <p>Our generator applies standard <strong>TESOL / CELTA</strong> frameworks to ensure class effectiveness:</p>
+            
+            <div class="framework-step">
+              <div class="step-num">1</div>
+              <div>
+                <strong>Engage (Warm-up)</strong>
+                <p>Builds momentum and breaks the ice. Minimizes teacher talk time from the start.</p>
+              </div>
+            </div>
+
+            <div class="framework-step">
+              <div class="step-num">2</div>
+              <div>
+                <strong>Study (Eliciting & Concept Checks)</strong>
+                <p>Elicits vocab, runs CCQs (Concept Checking Questions), back-chaining pronunciation drills.</p>
+              </div>
+            </div>
+
+            <div class="framework-step">
+              <div class="step-num">3</div>
+              <div>
+                <strong>Practice (Controlled to Freer)</strong>
+                <p>Substitution drills leading to Information Gap activities where students speak with partners.</p>
+              </div>
+            </div>
+
+            <div class="framework-step">
+              <div class="step-num">4</div>
+              <div>
+                <strong>Production (Role-play/Task)</strong>
+                <p>Real-life situation simulation. Teacher observes, records errors, and runs Delayed Correction.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Generation Loading Overlay -->
+        <div id="generation-loading" class="loading-overlay hidden">
+          <div class="loading-content">
+            <div class="spinner"></div>
+            <h3>Generating TESOL Assets...</h3>
+            <p id="loading-status">Constructing interactive script & materials...</p>
+            <div class="progress-bar-container">
+              <div id="loading-progress" class="progress-bar-fill"></div>
+            </div>
+            <span id="loading-percentage" style="margin-top: 8px; font-size: 13.5px; font-weight: 600; color: var(--primary);">0%</span>
+          </div>
+        </div>
+
+        <!-- Result Panel (Hidden by default) -->
+        <div id="result-container" class="result-container hidden">
+          <div class="result-header">
+            <div>
+              <h2 id="result-title">Lesson Title</h2>
+              <div class="meta-tags">
+                <span id="tag-skill" class="meta-tag skill">Speaking</span>
+                <span id="tag-level" class="meta-tag level">Intermediate</span>
+                <span id="tag-duration" class="meta-tag duration">90 min</span>
+              </div>
+            </div>
+            <div class="result-actions">
+              <button id="btn-save-current" class="btn btn-secondary">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                Save Plan
+              </button>
+              <button id="btn-export-markdown" class="btn btn-secondary">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                Export MD
+              </button>
+              <button id="btn-print-lesson" class="btn btn-secondary">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                Print
+              </button>
+            </div>
+          </div>
+
+          <!-- Result Tabs -->
+          <div class="result-tabs">
+            <button class="result-tab active" data-result-tab="script">📜 Full Lesson Script</button>
+            <button class="result-tab" data-result-tab="slides">🖼️ Slides & Image Search</button>
+            <button class="result-tab" data-result-tab="materials">📦 Materials & Game Play</button>
+            <button class="result-tab" data-result-tab="sheets">📝 Worksheets & Audio</button>
+          </div>
+
+          <!-- Result Panels -->
+          <div class="result-body">
+            <!-- Script Panel -->
+            <div id="result-tab-script" class="result-panel active">
+              <div class="script-table-container">
+                <table class="script-table">
+                  <thead>
+                    <tr>
+                      <th style="width: 15%">Stage & Time</th>
+                      <th style="width: 25%">Objectives & Pattern</th>
+                      <th style="width: 60%">Teacher Script & Student Interaction</th>
+                    </tr>
+                  </thead>
+                  <tbody id="script-table-body">
+                    <!-- Script items go here -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Slides Panel -->
+            <div id="result-tab-slides" class="result-panel">
+              <div class="slides-grid-layout">
+                <!-- Slide cards list -->
+                <div class="slides-list" id="slides-list-container">
+                  <!-- Generated slide items -->
+                </div>
+                
+                <!-- Image search sidebar/drawer -->
+                <div class="image-search-drawer">
+                  <div class="drawer-header">
+                    <h4>Image Assistant</h4>
+                    <p>Search and copy high-quality slide images directly.</p>
+                  </div>
+                  <div class="search-form">
+                    <input type="text" id="slide-img-search-input" placeholder="Search keywords...">
+                    <button id="btn-slide-img-search" class="btn btn-primary-sm">Search</button>
+                  </div>
+                  <div id="search-image-results" class="search-results-grid">
+                    <div class="no-results-msg">Select a slide to load keyword search suggestions.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Materials & Game Play Panel -->
+            <div id="result-tab-materials" class="result-panel">
+              <div class="materials-content">
+                <div class="materials-grid">
+                  <div class="card material-sub-card">
+                    <div class="card-header-icon">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="color-orange"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></svg>
+                      <h4>Video Resources & Links</h4>
+                    </div>
+                    <div id="material-video-content" class="material-block">
+                      <!-- Video resource links -->
+                    </div>
+                  </div>
+
+                  <div class="card material-sub-card">
+                    <div class="card-header-icon">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="color-blue"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                      <h4>Classroom Game Play</h4>
+                    </div>
+                    <div id="material-game-content" class="material-block">
+                      <!-- Interactive games -->
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Worksheets & Audio Panel -->
+            <div id="result-tab-sheets" class="result-panel">
+              <div class="sheets-content">
+                <div class="sheets-grid">
+                  <div class="card sheet-card">
+                    <div class="card-header-icon">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="color-green"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                      <h4>Listening Script / Dialogues</h4>
+                    </div>
+                    <div id="sheet-audio-content" class="material-block markdown-body">
+                      <!-- Dialogues / audio text -->
+                    </div>
+                  </div>
+
+                  <div class="card sheet-card">
+                    <div class="card-header-icon">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="color-violet"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+                      <h4>Student Exercise Worksheet & Homework</h4>
+                    </div>
+                    <div id="sheet-exercise-content" class="material-block markdown-body">
+                      <!-- Questions, gaps, home tasks -->
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- History Tab -->
+      <section id="tab-history" class="tab-pane">
+        <div class="tab-header">
+          <h2>Saved Lesson Plans</h2>
+          <p>Access your past classroom scripts, slide descriptions, and materials.</p>
+        </div>
+
+        <div class="search-history-container">
+          <input type="text" id="history-search" placeholder="Search saved lessons by topic, level or skill...">
+          <button id="btn-clear-history" class="btn btn-danger-sm">Clear All History</button>
+        </div>
+
+        <div class="history-grid" id="history-list-grid">
+          <!-- History cards -->
+          <div class="no-history-msg">No saved lessons yet. Go to "Create Lesson Plan" to generate your first plan!</div>
+        </div>
+      </section>
+
+      <!-- Settings Tab -->
+      <section id="tab-settings" class="tab-pane">
+        <div class="tab-header">
+          <h2>API Credentials & Settings</h2>
+          <p>Configure your Google Gemini or OpenAI access to unlock smart planning capabilities.</p>
+        </div>
+
+        <div class="card settings-card">
+          <div class="form-group">
+            <label for="settings-provider">AI Provider</label>
+            <select id="settings-provider">
+              <option value="gemini" selected>Google Gemini (Recommended)</option>
+              <option value="openai">OpenAI (GPT Models)</option>
+            </select>
+          </div>
+
+          <div class="form-group" id="group-gemini-key">
+            <label for="settings-gemini-key">Google Gemini API Key</label>
+            <div class="password-input-wrapper">
+              <input type="password" id="settings-gemini-key" placeholder="AIzaSy...">
+              <button class="btn-toggle-pw" onclick="togglePasswordVisibility('settings-gemini-key')">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+            <small class="help-text">You can get a free key from Google AI Studio.</small>
+          </div>
+
+          <div class="form-group hidden" id="group-openai-key">
+            <label for="settings-openai-key">OpenAI API Key</label>
+            <div class="password-input-wrapper">
+              <input type="password" id="settings-openai-key" placeholder="sk-...">
+              <button class="btn-toggle-pw" onclick="togglePasswordVisibility('settings-openai-key')">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+            <small class="help-text">Use standard platform.openai.com keys.</small>
+          </div>
+
+          <div class="form-group">
+            <label for="settings-model">Model Selection</label>
+            <select id="settings-model">
+              <!-- Dynamically populated based on provider -->
+            </select>
+          </div>
+
+          <button id="btn-save-settings" class="btn btn-primary">Save Settings</button>
+          <span id="settings-success" class="settings-success-msg hidden">✓ Settings saved successfully!</span>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Image Selector Modal (glowing visual check) -->
+  <div id="image-modal" class="modal-overlay hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Browse Slide Images</h3>
+        <button class="btn-close-modal" id="btn-close-img-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-search-row">
+          <input type="text" id="modal-img-search-input" placeholder="Search keywords...">
+          <button id="btn-modal-img-search" class="btn btn-primary">Search</button>
+        </div>
+        <div class="modal-image-grid" id="modal-image-results-grid">
+          <!-- Results -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
