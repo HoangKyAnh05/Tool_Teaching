@@ -4,13 +4,31 @@
   "description": "Smart desktop tool for TESOL teachers to generate full lesson plans, scripts, and slide materials.",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "dist": "electron-builder --win"
   },
   "dependencies": {
     "axios": "^1.6.2"
   },
   "devDependencies": {
-    "electron": "^30.0.0"
+    "electron": "^30.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.tesol.generator",
+    "productName": "TESOL AI Master",
+    "win": {
+      "target": [
+        "portable"
+      ]
+    },
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "**/*",
+      "!dist/*"
+    ]
   },
   "author": "Antigravity",
   "license": "ISC"
