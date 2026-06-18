@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, shell, clipboard, nativeImage } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, clipboard, nativeImage, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const https = require('https');
@@ -307,6 +307,55 @@ ipcMain.handle('copy-image-to-clipboard', async (event, { url }) => {
     return { success: true };
   } catch (error) {
     console.error("Failed to copy image to clipboard:", error);
+    return { success: false, error: error.message };
+  }
+});
+
+// IPC Handler: Save Word Document using native OS save dialog
+ipcMain.handle('save-word-file', async (event, { content, defaultName }) => {
+  try {
+    const { filePath } = await dialog.showSaveDialog({
+      title: 'Save Word Document',
+      defaultPath: defaultName + '.doc',
+      filters: [
+        { name: 'Word Documents (*.doc)', extensions: ['doc'] }
+      ]
+    });
+    if (filePath) {
+      fs.writeFileSync(filePath, '\ufeff' + content, 'utf-8');
+      return { success: true };
+    }
+    return { success: false, cancelled: true };
+  } catch (error) {
+    console.error("Failed to save Word document:", error);
+    return { success: false, error: error.message };
+  }
+});
+
+// IPC Handler: Save PDF Document using native OS save dialog and printToPDF
+ipcMain.handle('save-pdf-file', async (event, { defaultName }) => {
+  try {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    const { filePath } = await dialog.showSaveDialog({
+      title: 'Save PDF Document',
+      defaultPath: defaultName + '.pdf',
+      filters: [
+        { name: 'PDF Documents (*.pdf)', extensions: ['pdf'] }
+      ]
+    });
+    if (filePath) {
+      const data = await win.webContents.printToPDF({
+        printBackground: true,
+        margins: {
+          marginType: 'default'
+        }
+      });
+      fs.writeFileSync(filePath, data);
+      return { success: true };
+    }
+    return { success: false, cancelled: true };
+  } catch (error) {
+    console.error("Failed to save PDF document:", error);
     return { success: false, error: error.message };
   }
 });

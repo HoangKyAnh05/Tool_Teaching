@@ -5,7 +5,8 @@ let appData = {
     apiProvider: 'gemini',
     aiModel: 'gemini-2.5-flash',
     openaiKey: '',
-    openaiModel: 'gpt-4o-mini'
+    openaiModel: 'gpt-4o-mini',
+    teacherName: ''
   },
   lessons: []
 };
@@ -40,6 +41,7 @@ const resultTitle = document.getElementById('result-title');
 const tagSkill = document.getElementById('tag-skill');
 const tagLevel = document.getElementById('tag-level');
 const tagDuration = document.getElementById('tag-duration');
+const textTeacherName = document.getElementById('text-teacher-name');
 const scriptTableBody = document.getElementById('script-table-body');
 const slidesListContainer = document.getElementById('slides-list-container');
 const searchImageResults = document.getElementById('search-image-results');
@@ -54,8 +56,8 @@ const blockExercise = document.getElementById('sheet-exercise-content');
 
 // Actions
 const btnSaveCurrent = document.getElementById('btn-save-current');
-const btnExportMarkdown = document.getElementById('btn-export-markdown');
-const btnPrintLesson = document.getElementById('btn-print-lesson');
+const btnExportWord = document.getElementById('btn-export-word');
+const btnExportPDF = document.getElementById('btn-export-pdf');
 
 // History Elements
 const historyListGrid = document.getElementById('history-list-grid');
@@ -64,6 +66,7 @@ const btnClearHistory = document.getElementById('btn-clear-history');
 const historyCountBadge = document.getElementById('history-count-badge');
 
 // Settings Elements
+const inputTeacherName = document.getElementById('settings-teacher-name');
 const settingsProvider = document.getElementById('settings-provider');
 const groupGeminiKey = document.getElementById('group-gemini-key');
 const groupOpenaiKey = document.getElementById('group-openai-key');
@@ -187,6 +190,7 @@ function initSettings() {
   }
 
   // Set initial settings inputs
+  if (inputTeacherName) inputTeacherName.value = appData.settings.teacherName || '';
   settingsProvider.value = appData.settings.apiProvider || 'gemini';
   inputGeminiKey.value = appData.settings.apiKey || '';
   inputOpenaiKey.value = appData.settings.openaiKey || '';
@@ -195,6 +199,7 @@ function initSettings() {
   settingsProvider.addEventListener('change', updateModelOptions);
 
   btnSaveSettings.addEventListener('click', async () => {
+    if (inputTeacherName) appData.settings.teacherName = inputTeacherName.value.trim();
     appData.settings.apiProvider = settingsProvider.value;
     appData.settings.apiKey = inputGeminiKey.value.trim();
     appData.settings.openaiKey = inputOpenaiKey.value.trim();
@@ -333,6 +338,7 @@ Important TESOL Constraints to reflect in the script & stages:
     parsedLesson.createdAt = new Date().toISOString();
     parsedLesson.id = 'lesson_' + Date.now();
     parsedLesson.topicInput = topic;
+    parsedLesson.teacherName = appData.settings.teacherName || '';
     currentLesson = parsedLesson;
 
     renderLessonResult(parsedLesson);
@@ -606,9 +612,22 @@ function initResults() {
 
   // Action buttons
   btnSaveCurrent.addEventListener('click', saveCurrentPlan);
-  btnExportMarkdown.addEventListener('click', exportToMarkdown);
-  btnPrintLesson.addEventListener('click', () => {
-    window.print();
+  if (btnExportWord) btnExportWord.addEventListener('click', exportToWord);
+  if (btnExportPDF) btnExportPDF.addEventListener('click', async () => {
+    if (!currentLesson) return;
+    const defaultName = `${currentLesson.title.toLowerCase().replace(/[^a-z0-9]+/g, '_')}_lesson_plan`;
+    
+    try {
+      const res = await window.api.savePDFFile({ defaultName });
+      if (res.success) {
+        showToast("Exported to PDF successfully!");
+      } else if (res.error) {
+        showToast("Failed to export PDF: " + res.error);
+      }
+    } catch (err) {
+      console.error(err);
+      showToast("Failed to save PDF file");
+    }
   });
 
   // Slide search button
@@ -624,6 +643,18 @@ function renderLessonResult(lesson) {
   tagSkill.textContent = lesson.skill;
   tagLevel.textContent = lesson.level;
   tagDuration.textContent = lesson.duration;
+
+  const wrapperTeacherName = document.getElementById('wrapper-teacher-name');
+  const teacherNameVal = lesson.teacherName || appData.settings.teacherName || '';
+  if (textTeacherName) {
+    if (teacherNameVal) {
+      textTeacherName.textContent = teacherNameVal;
+      if (wrapperTeacherName) wrapperTeacherName.style.display = 'block';
+    } else {
+      textTeacherName.textContent = '';
+      if (wrapperTeacherName) wrapperTeacherName.style.display = 'none';
+    }
+  }
 
   // 1. Script Table
   scriptTableBody.innerHTML = '';
@@ -928,45 +959,208 @@ async function saveCurrentPlan() {
   showToast("Lesson plan saved successfully!");
 }
 
-// Export Lesson to Markdown file
-function exportToMarkdown() {
+// Export Lesson to Microsoft Word file (.doc)
+async function exportToWord() {
   if (!currentLesson) return;
 
-  let md = `# TESOL LESSON PLAN: ${currentLesson.title}\n\n`;
-  md += `* **Skill/Methodology:** ${currentLesson.skill}\n`;
-  md += `* **Level:** ${currentLesson.level}\n`;
-  md += `* **Duration:** ${currentLesson.duration}\n\n`;
-  
-  md += `## 📜 LESSON STAGES & SCRIPTS\n\n`;
+  const defaultName = `${currentLesson.title.toLowerCase().replace(/[^a-z0-9]+/g, '_')}_lesson_plan`;
+  const teacherNameVal = currentLesson.teacherName || appData.settings.teacherName || '';
+
+  // Build styled HTML document tailored for MS Word opening
+  let html = `
+    <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+    <head>
+      <title>${currentLesson.title}</title>
+      <!--[if gte mso 9]>
+      <xml>
+        <w:WordDocument>
+          <w:View>Print</w:View>
+          <w:Zoom>100</w:Zoom>
+        </w:WordDocument>
+      </xml>
+      <![endif]-->
+      <style>
+        body {
+          font-family: 'Segoe UI', Arial, sans-serif;
+          line-height: 1.6;
+          color: #333;
+          margin: 40px;
+        }
+        h1 {
+          color: #4f46e5;
+          font-size: 24pt;
+          border-bottom: 2px solid #4f46e5;
+          padding-bottom: 6px;
+          margin-bottom: 20px;
+        }
+        h2 {
+          color: #1e1b4b;
+          font-size: 16pt;
+          margin-top: 30px;
+          border-bottom: 1px solid #ddd;
+          padding-bottom: 4px;
+        }
+        h3 {
+          color: #4338ca;
+          font-size: 13pt;
+          margin-top: 20px;
+        }
+        p {
+          font-size: 11pt;
+          margin-bottom: 10px;
+        }
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-top: 15px;
+          margin-bottom: 15px;
+        }
+        th, td {
+          border: 1px solid #ddd;
+          padding: 10px;
+          font-size: 10.5pt;
+          text-align: left;
+          vertical-align: top;
+        }
+        th {
+          background-color: #f3f4f6;
+          font-weight: bold;
+        }
+        .pattern-tag {
+          display: inline-block;
+          background-color: #e0f2fe;
+          color: #0369a1;
+          padding: 2px 8px;
+          border-radius: 4px;
+          font-size: 9pt;
+          font-weight: bold;
+        }
+        .script-text {
+          white-space: pre-wrap;
+          font-family: Consolas, monospace;
+          background-color: #f9fafb;
+          border: 1px solid #e5e7eb;
+          padding: 12px;
+          border-radius: 6px;
+        }
+        .meta-list {
+          margin-bottom: 20px;
+        }
+        .meta-item {
+          font-size: 11pt;
+          margin-bottom: 6px;
+        }
+      </style>
+    </head>
+    <body>
+      <h1>TESOL LESSON PLAN: ${currentLesson.title}</h1>
+      <div class="meta-list">
+        ${teacherNameVal ? `<div class="meta-item"><u><b>Name :</b></u> ${teacherNameVal}</div>` : ''}
+        <div class="meta-item"><b>Skill/Methodology:</b> ${currentLesson.skill}</div>
+        <div class="meta-item"><b>Level:</b> ${currentLesson.level}</div>
+        <div class="meta-item"><b>Duration:</b> ${currentLesson.duration}</div>
+      </div>
+
+      <h2>📜 LESSON STAGES & SCRIPTS</h2>
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 25%;">Stage</th>
+            <th style="width: 25%;">Objective & Pattern</th>
+            <th style="width: 50%;">Script / Dialogue</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+
   currentLesson.stages.forEach(stage => {
-    md += `### ${stage.stageName} (${stage.duration})\n`;
-    md += `* **Objective:** ${stage.objective}\n`;
-    md += `* **Interaction Pattern:** ${stage.pattern}\n\n`;
-    md += `**Dialogue/Script:**\n\`\`\`\n${stage.script}\n\`\`\`\n\n`;
+    const cleanScript = (stage.script || '').replace(/\\n/g, '<br/>').replace(/\n/g, '<br/>');
+    html += `
+      <tr>
+        <td>
+          <b>${stage.stageName}</b><br/>
+          <span style="font-size: 9pt; color: #666;">(${stage.duration})</span>
+        </td>
+        <td>
+          <p>${stage.objective}</p>
+          <span class="pattern-tag">${stage.pattern}</span>
+        </td>
+        <td>
+          <div class="script-text">${cleanScript}</div>
+        </td>
+      </tr>
+    `;
   });
 
-  md += `## 🖼️ SLIDES DESIGN\n\n`;
+  html += `
+        </tbody>
+      </table>
+
+      <h2>🖼️ SLIDES DESIGN</h2>
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 10%;">No.</th>
+            <th style="width: 30%;">Slide Title & Keywords</th>
+            <th style="width: 60%;">Description & Image Prompt</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+
   currentLesson.slides.forEach(slide => {
-    md += `### Slide ${slide.number}: ${slide.title}\n`;
-    md += `* **Visual Description:** ${slide.description}\n`;
-    md += `* **Image Prompt:** ${slide.imagePrompt}\n`;
-    md += `* **Image Search Query:** ${slide.searchKeywords}\n\n`;
+    const cleanDesc = (slide.description || '').replace(/\\n/g, '<br/>').replace(/\n/g, '<br/>');
+    const cleanPrompt = (slide.imagePrompt || '').replace(/\\n/g, '<br/>').replace(/\n/g, '<br/>');
+    html += `
+      <tr>
+        <td style="text-align: center;"><b>${slide.number}</b></td>
+        <td>
+          <b>${slide.title}</b><br/>
+          <span style="font-size: 9pt; color: #666; font-style: italic;">Keywords: ${slide.searchKeywords}</span>
+        </td>
+        <td>
+          <p><b>Description:</b> ${cleanDesc}</p>
+          <p style="color: #0284c7; font-size: 9.5pt;"><b>Image Prompt:</b> ${cleanPrompt}</p>
+        </td>
+      </tr>
+    `;
   });
 
-  md += `## 📦 TEACHING MATERIALS & RESOURCE LINKS\n\n`;
-  md += `### Video Resources\n${currentLesson.materials.videoLinksDescription}\n\n`;
-  md += `### Audio script / Prompts\n${currentLesson.materials.audioScript}\n\n`;
-  md += `### Classroom Game Play & Activities\n${currentLesson.materials.games}\n\n`;
-  
-  md += `## 📝 WORKSHEETS & HOMEWORK\n\n`;
-  md += `### Student Worksheet\n${currentLesson.materials.worksheets}\n\n`;
-  md += `### Homework\n${currentLesson.materials.homework}\n\n`;
+  html += `
+        </tbody>
+      </table>
 
-  const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `${currentLesson.title.toLowerCase().replace(/[^a-z0-9]+/g, '_')}_tesol_plan.md`;
-  a.click();
+      <h2>📦 TEACHING MATERIALS & RESOURCE LINKS</h2>
+      <h3>📹 Video Resources Suggestions</h3>
+      <p>${(currentLesson.materials.videoLinksDescription || 'None suggested').replace(/\\n/g, '<br/>').replace(/\n/g, '<br/>')}</p>
+
+      <h3>🎵 Audio Script / Listening Prompts</h3>
+      <p>${(currentLesson.materials.audioScript || 'None suggested').replace(/\\n/g, '<br/>').replace(/\n/g, '<br/>')}</p>
+
+      <h3>🎮 Classroom Game Play & Activities</h3>
+      <p>${(currentLesson.materials.games || 'None suggested').replace(/\\n/g, '<br/>').replace(/\n/g, '<br/>')}</p>
+
+      <h2>📝 WORKSHEETS & HOMEWORK</h2>
+      <h3>📄 Student Worksheet</h3>
+      <p>${(currentLesson.materials.worksheets || 'None suggested').replace(/\\n/g, '<br/>').replace(/\n/g, '<br/>')}</p>
+
+      <h3>🏠 Homework Tasks</h3>
+      <p>${(currentLesson.materials.homework || 'None suggested').replace(/\\n/g, '<br/>').replace(/\n/g, '<br/>')}</p>
+    </body>
+    </html>
+  `;
+
+  try {
+    const res = await window.api.saveWordFile({ content: html, defaultName });
+    if (res.success) {
+      showToast("Exported to Microsoft Word (.doc) successfully!");
+    } else if (res.error) {
+      showToast("Failed to export: " + res.error);
+    }
+  } catch (err) {
+    console.error(err);
+    showToast("Failed to save Word file");
+  }
 }
 
 // History tab logic
