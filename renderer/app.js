@@ -24,6 +24,7 @@ const inputLevel = document.getElementById('lesson-level');
 const inputDuration = document.getElementById('lesson-duration');
 const inputSkill = document.getElementById('lesson-skill');
 const inputNotes = document.getElementById('lesson-notes');
+const inputReferenceScript = document.getElementById('lesson-reference-script');
 const btnGenerate = document.getElementById('btn-generate');
 
 // Suggestions
@@ -226,6 +227,7 @@ async function handleGenerateLesson() {
   const duration = inputDuration.value;
   const skill = inputSkill.value;
   const notes = inputNotes.value.trim();
+  const referenceScript = inputReferenceScript ? inputReferenceScript.value.trim() : '';
 
   if (!topic) {
     alert("Please enter a lesson topic!");
@@ -255,6 +257,11 @@ Level: "${level}"
 Class Duration: "${duration}"
 Core Target Skill & Method: "${skill}"
 Special Instructions/Notes: "${notes || 'None'}"
+${referenceScript ? `\nCRITICAL SOURCE TEXT / REFERENCE SCRIPT / MODEL TEXT FOR THE LESSON PLAN DESIGN:
+You MUST base the lesson contents, vocabulary target, practice activities, listening script, reading tasks, worksheets, and examples strictly on the text/script provided below. Ensure the generated lesson plan closely aligns with this input:
+"""
+${referenceScript}
+"""\n` : ''}
 
 You MUST output ONLY a valid JSON string matching the following structure:
 {
@@ -262,12 +269,24 @@ You MUST output ONLY a valid JSON string matching the following structure:
   "skill": "Speaking, Listening, Reading, or Writing",
   "level": "English Level",
   "duration": "Duration in minutes",
+  "mainLessonAims": "Main lesson aim(s) (what key skills/concepts students will learn and master by the end of this lesson)",
+  "personalAims": "Personal aims for the teacher (e.g., related to classroom management, reducing TTT, checking instructions, active listening, CCQs, etc.)",
+  "materialsList": "List of teaching materials, handouts, references, and audio-visual tools used in the lesson",
+  "assumptions": "What learners can already do in relation to these lesson demands before the class starts",
+  "outcomes": "Outcome for Students: By the end of the lesson, the students will have...",
+  "problemsAndSolutions": [
+    {
+      "problem": "Specific anticipated student learning or classroom management difficulty that might arise",
+      "solution": "Concrete, practical teaching solution to address the problem"
+    }
+  ],
   "stages": [
     {
-      "stageName": "Stage name (e.g. Warm-up, Lead-in, Eliciting, Controlled Practice, Freer Practice, Production, Delayed Error Correction)",
+      "stageName": "Stage name (e.g. Lead-in, Eliciting, Controlled Practice, Freer Practice, Production, Delayed Error Correction)",
       "duration": "Time allocated (e.g. 10 mins)",
-      "objective": "TESOL objective for this stage",
+      "objective": "TESOL objective for this stage (What is the purpose of this activity?)",
       "pattern": "Interaction pattern: T->S, S->S, S->Class, etc.",
+      "procedure": "Detailed step-by-step description of what the teacher and students are doing during this stage (e.g., Teacher shows a picture, students brainstorm ideas in pairs...)",
       "script": "FULL classroom dialogue script. Write complete dialogues including what the Teacher says (T: ...) and expected Student responses (S: ...). Show TESOL techniques like Eliciting, Concept Checking Questions (CCQs) and pronunciation back-chaining drilling."
     }
   ],
@@ -487,6 +506,12 @@ function extractJSONFields(text) {
     skill: "Speaking",
     level: "Intermediate",
     duration: "90 minutes",
+    mainLessonAims: "",
+    personalAims: "",
+    materialsList: "",
+    assumptions: "",
+    outcomes: "",
+    problemsAndSolutions: [],
     stages: [],
     slides: [],
     materials: {
@@ -517,6 +542,26 @@ function extractJSONFields(text) {
   lesson.skill = extractStringKey("skill", text) || "Speaking";
   lesson.level = extractStringKey("level", text) || "Intermediate";
   lesson.duration = extractStringKey("duration", text) || "90 minutes";
+  lesson.mainLessonAims = extractStringKey("mainLessonAims", text);
+  lesson.personalAims = extractStringKey("personalAims", text);
+  lesson.materialsList = extractStringKey("materialsList", text);
+  lesson.assumptions = extractStringKey("assumptions", text);
+  lesson.outcomes = extractStringKey("outcomes", text);
+
+  // Extract Problems & Solutions
+  const probMatches = text.match(/"problemsAndSolutions"\s*:\s*\[([\s\S]*?)\]/i);
+  if (probMatches) {
+    const probBlock = probMatches[1];
+    const items = probBlock.split(/\{\s*"problem"/gi).slice(1);
+    items.forEach((item) => {
+      const fullItem = `{"problem"` + item;
+      const problem = extractStringKey("problem", fullItem);
+      const solution = extractStringKey("solution", fullItem);
+      if (problem || solution) {
+        lesson.problemsAndSolutions.push({ problem, solution });
+      }
+    });
+  }
 
   // Extract Stages directly from text blocks split by "stageName"
   const stageBlocks = text.split(/"stageName"\s*:/i).slice(1);
@@ -528,6 +573,7 @@ function extractJSONFields(text) {
     const duration = extractStringKey("duration", fullBlock);
     const objective = extractStringKey("objective", fullBlock);
     const pattern = extractStringKey("pattern", fullBlock);
+    const procedure = extractStringKey("procedure", fullBlock);
     const script = extractStringKey("script", fullBlock);
 
     if (stageName || script) {
@@ -540,6 +586,7 @@ function extractJSONFields(text) {
         duration: duration || "10 mins",
         objective: objective || "Stage Objective",
         pattern: pattern || "T->S",
+        procedure: procedure || "",
         script: script || ""
       });
     }
@@ -965,6 +1012,99 @@ async function exportToWord() {
 
   const defaultName = `${currentLesson.title.toLowerCase().replace(/[^a-z0-9]+/g, '_')}_lesson_plan`;
   const teacherNameVal = currentLesson.teacherName || appData.settings.teacherName || '';
+  const dateOfLessonVal = new Date().toLocaleDateString('en-GB'); // DD/MM/YYYY
+
+  const mainLessonAimsVal = currentLesson.mainLessonAims || `To develop students' skills in speaking and using vocabulary related to ${currentLesson.title}.`;
+  const personalAimsVal = currentLesson.personalAims || `To practice effective classroom management, maximize student talking time (STT), and check understanding using CCQs.`;
+  const materialsListVal = currentLesson.materialsList || `Handouts, whiteboard markers, projector, flashcards.`;
+  const assumptionsVal = currentLesson.assumptions || `Students are familiar with basic sentence structures and core vocabulary related to the theme.`;
+  const outcomesVal = currentLesson.outcomes || `By the end of the lesson, the students will have practiced speaking, used key vocabulary, and completed a freer practice role-play activity.`;
+
+  let problemsAndSolutionsHtml = '';
+  const problemsList = currentLesson.problemsAndSolutions || [
+    { problem: "Students may use their mother tongue during group work.", solution: "Set clear rules, monitor groups actively, and assign a group leader to encourage English usage." },
+    { problem: "Some activities might run over time.", solution: "Keep a strict timer, signal transitions clearly, and shorten the warming-up if necessary." }
+  ];
+
+  const minRows = 3;
+  let rowsCount = problemsList.length;
+  problemsList.forEach(item => {
+    problemsAndSolutionsHtml += `
+      <tr>
+        <td style="border: 1px solid #000000; width: 50%; padding: 8px; vertical-align: top;">
+          <span style="font-family: Arial, sans-serif; font-size: 10pt; color: #000000;">${(item.problem || '').replace(/\\n/g, '<br/>').replace(/\n/g, '<br/>')}</span>
+        </td>
+        <td colspan="2" style="border: 1px solid #000000; width: 50%; padding: 8px; vertical-align: top;">
+          <span style="font-family: Arial, sans-serif; font-size: 10pt; color: #000000;">${(item.solution || '').replace(/\\n/g, '<br/>').replace(/\n/g, '<br/>')}</span>
+        </td>
+      </tr>
+    `;
+  });
+  for (let i = rowsCount; i < minRows; i++) {
+    problemsAndSolutionsHtml += `
+      <tr>
+        <td style="border: 1px solid #000000; width: 50%; padding: 8px; vertical-align: top; height: 35px;">&nbsp;</td>
+        <td colspan="2" style="border: 1px solid #000000; width: 50%; padding: 8px; vertical-align: top; height: 35px;">&nbsp;</td>
+      </tr>
+    `;
+  }
+
+  let stagesHtml = '';
+  currentLesson.stages.forEach(stage => {
+    const cleanScript = (stage.script || '').replace(/\\n/g, '<br/>').replace(/\n/g, '<br/>');
+    const stageProcedureVal = stage.procedure || `Teacher conducts activity for ${stage.stageName}. Students interact and complete objectives.`;
+
+    stagesHtml += `
+      <tr>
+        <td style="border: 1px solid #000000; padding: 8px; vertical-align: top; width: 10%;">
+          <span style="font-family: Arial, sans-serif; font-size: 10pt; color: #000000;">${stage.duration}</span>
+        </td>
+        <td style="border: 1px solid #000000; padding: 8px; vertical-align: top; width: 25%;">
+          <span style="font-family: Arial, sans-serif; font-size: 10pt; color: #000000;">${stage.objective}</span>
+        </td>
+        <td style="border: 1px solid #000000; padding: 8px; vertical-align: top; width: 40%;">
+          <div style="font-family: Arial, sans-serif; font-size: 10pt; font-weight: bold; color: #000000; margin-bottom: 6px;">Stage: ${stage.stageName}</div>
+          <div style="font-family: Arial, sans-serif; font-size: 10pt; font-style: italic; color: #475569; margin-bottom: 2px;">Procedure:</div>
+          <div style="font-family: Arial, sans-serif; font-size: 10pt; color: #000000; margin-bottom: 10px;">${stageProcedureVal}</div>
+          ${cleanScript ? `
+            <div style="font-family: Arial, sans-serif; font-size: 10pt; font-style: italic; color: #475569; margin-bottom: 2px;">Dialogue Script:</div>
+            <div style="font-family: 'Courier New', Courier, monospace; font-size: 9.5pt; color: #334155; background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 6px;">${cleanScript}</div>
+          ` : ''}
+        </td>
+        <td style="border: 1px solid #000000; padding: 8px; vertical-align: top; text-align: center; width: 10%;">
+          <span style="font-family: Arial, sans-serif; font-size: 10pt; font-weight: bold; color: #000000;">${stage.pattern}</span>
+        </td>
+        <td style="border: 1px solid #000000; padding: 8px; vertical-align: top; width: 15%;">
+          &nbsp;
+        </td>
+      </tr>
+    `;
+  });
+
+  const logoHtml = `
+    <table style="width: 100%; border: none; border-collapse: collapse; margin-bottom: 10px;">
+      <tr>
+        <td style="border: none; width: 50%;"></td>
+        <td style="border: none; width: 50%; text-align: right; vertical-align: middle;">
+          <table style="border: none; border-collapse: collapse; display: inline-table; margin-left: auto;">
+            <tr>
+              <td style="border: none; padding: 0 8px 0 0; vertical-align: middle;">
+                <!-- Stylized CSS Flame Symbol -->
+                <div style="width: 20px; height: 24px; background-color: #f97316; border-top-left-radius: 10px; border-bottom-left-radius: 10px; border-bottom-right-radius: 10px; border-top-right-radius: 2px; display: inline-block; position: relative;">
+                  <div style="width: 10px; height: 13px; background-color: #ffb703; border-top-left-radius: 6px; border-bottom-left-radius: 6px; border-bottom-right-radius: 6px; border-top-right-radius: 2px; position: absolute; bottom: 2px; right: 2px;"></div>
+                </div>
+              </td>
+              <td style="border: none; padding: 0; text-align: left; vertical-align: middle; line-height: 1.1;">
+                <span style="font-family: Arial, sans-serif; font-size: 16pt; font-weight: bold; color: #f97316;">ETP</span>
+                <span style="font-family: Arial, sans-serif; font-size: 16pt; font-weight: bold; color: #1e293b; margin-left: 1px;">TESOL</span>
+                <div style="font-family: Arial, sans-serif; font-size: 6.5pt; font-weight: bold; color: #475569; letter-spacing: 0.5px; margin-top: 1px;">ENGLISH TEACHER PREPARATION</div>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  `;
 
   // Build styled HTML document tailored for MS Word opening
   let html = `
@@ -980,129 +1120,169 @@ async function exportToWord() {
       </xml>
       <![endif]-->
       <style>
+        @page {
+          size: A4;
+          margin: 20mm;
+        }
         body {
-          font-family: 'Segoe UI', Arial, sans-serif;
-          line-height: 1.6;
-          color: #333;
-          margin: 40px;
-        }
-        h1 {
-          color: #4f46e5;
-          font-size: 24pt;
-          border-bottom: 2px solid #4f46e5;
-          padding-bottom: 6px;
-          margin-bottom: 20px;
-        }
-        h2 {
-          color: #1e1b4b;
-          font-size: 16pt;
-          margin-top: 30px;
-          border-bottom: 1px solid #ddd;
-          padding-bottom: 4px;
-        }
-        h3 {
-          color: #4338ca;
-          font-size: 13pt;
-          margin-top: 20px;
-        }
-        p {
-          font-size: 11pt;
-          margin-bottom: 10px;
+          font-family: Arial, sans-serif;
+          line-height: 1.4;
+          color: #000000;
         }
         table {
           width: 100%;
           border-collapse: collapse;
-          margin-top: 15px;
-          margin-bottom: 15px;
         }
         th, td {
-          border: 1px solid #ddd;
-          padding: 10px;
-          font-size: 10.5pt;
-          text-align: left;
+          border: 1px solid #000000;
+          padding: 8px;
+          font-size: 10pt;
           vertical-align: top;
         }
-        th {
-          background-color: #f3f4f6;
+        .bold-text {
           font-weight: bold;
         }
-        .pattern-tag {
-          display: inline-block;
-          background-color: #e0f2fe;
-          color: #0369a1;
-          padding: 2px 8px;
-          border-radius: 4px;
-          font-size: 9pt;
-          font-weight: bold;
+        .italic-text {
+          font-style: italic;
         }
-        .script-text {
-          white-space: pre-wrap;
-          font-family: Consolas, monospace;
-          background-color: #f9fafb;
-          border: 1px solid #e5e7eb;
-          padding: 12px;
-          border-radius: 6px;
+        .gray-label {
+          color: #475569;
+          font-size: 9.5pt;
         }
-        .meta-list {
-          margin-bottom: 20px;
-        }
-        .meta-item {
-          font-size: 11pt;
-          margin-bottom: 6px;
+        .footer-note {
+          font-size: 9.5pt;
+          font-style: italic;
+          margin-top: 5px;
         }
       </style>
     </head>
     <body>
-      <h1>TESOL LESSON PLAN: ${currentLesson.title}</h1>
-      <div class="meta-list">
-        ${teacherNameVal ? `<div class="meta-item"><u><b>Name :</b></u> ${teacherNameVal}</div>` : ''}
-        <div class="meta-item"><b>Skill/Methodology:</b> ${currentLesson.skill}</div>
-        <div class="meta-item"><b>Level:</b> ${currentLesson.level}</div>
-        <div class="meta-item"><b>Duration:</b> ${currentLesson.duration}</div>
-      </div>
-
-      <h2>📜 LESSON STAGES & SCRIPTS</h2>
-      <table>
+      
+      <!-- PAGE 1: LESSON PLAN GENERAL INFORMATION -->
+      ${logoHtml}
+      
+      <h2 style="text-align: center; font-family: Arial, sans-serif; font-size: 15pt; font-weight: bold; color: #000000; margin-top: 10px; margin-bottom: 20px;">ETP TESOL - Lesson Plan Template</h2>
+      
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 5px;">
+        <!-- Row 1: Teacher name | Date of lesson | Class level -->
+        <tr>
+          <td style="border: 1px solid #000000; width: 50%; padding: 8px; vertical-align: top;">
+            <span style="font-family: Arial, sans-serif; font-size: 10pt; font-weight: bold;">Teacher name</span><br/>
+            <span style="font-family: Arial, sans-serif; font-size: 10pt;">${teacherNameVal || '&nbsp;'}</span>
+          </td>
+          <td style="border: 1px solid #000000; width: 25%; padding: 8px; vertical-align: top;">
+            <span style="font-family: Arial, sans-serif; font-size: 10pt; font-weight: bold;">Date of lesson</span><br/>
+            <span style="font-family: Arial, sans-serif; font-size: 10pt;">${dateOfLessonVal || '&nbsp;'}</span>
+          </td>
+          <td style="border: 1px solid #000000; width: 25%; padding: 8px; vertical-align: top;">
+            <span style="font-family: Arial, sans-serif; font-size: 10pt; font-weight: bold;">Class level</span><br/>
+            <span style="font-family: Arial, sans-serif; font-size: 10pt;">${currentLesson.level || '&nbsp;'}</span>
+          </td>
+        </tr>
+        <!-- Row 2: Main Lesson aim(s) -->
+        <tr>
+          <td colspan="3" style="border: 1px solid #000000; padding: 8px; vertical-align: top; height: 60px;">
+            <span style="font-family: Arial, sans-serif; font-size: 10pt; font-weight: bold;">Main Lesson aim(s)</span><br/>
+            <span style="font-family: Arial, sans-serif; font-size: 10pt;">${mainLessonAimsVal}</span>
+          </td>
+        </tr>
+        <!-- Row 3: Personal aims | Materials -->
+        <tr>
+          <td style="border: 1px solid #000000; width: 50%; padding: 8px; vertical-align: top; height: 70px;">
+            <span style="font-family: Arial, sans-serif; font-size: 10pt; font-weight: bold;">Personal aims</span> <span style="font-family: Arial, sans-serif; font-size: 9pt; color: #475569;">(base these on action points from previous lessons)</span><br/>
+            <span style="font-family: Arial, sans-serif; font-size: 10pt;">${personalAimsVal}</span>
+          </td>
+          <td colspan="2" style="border: 1px solid #000000; width: 50%; padding: 8px; vertical-align: top; height: 70px;">
+            <span style="font-family: Arial, sans-serif; font-size: 10pt; font-weight: bold;">Materials</span> <span style="font-family: Arial, sans-serif; font-size: 9pt; color: #475569;">(include reference to any books/page numbers used)</span><br/>
+            <span style="font-family: Arial, sans-serif; font-size: 10pt;">${materialsListVal}</span>
+          </td>
+        </tr>
+        <!-- Row 4: Assumptions -->
+        <tr>
+          <td colspan="3" style="border: 1px solid #000000; padding: 8px; vertical-align: top; height: 45px;">
+            <span style="font-family: Arial, sans-serif; font-size: 10pt; font-weight: bold;">Assumptions</span> <span style="font-family: Arial, sans-serif; font-size: 9pt; font-style: italic; color: #475569;">(What do you assume learners can already do in relation to lesson demands?)</span><br/>
+            <span style="font-family: Arial, sans-serif; font-size: 10pt;">${assumptionsVal}</span>
+          </td>
+        </tr>
+        <!-- Row 5: Outcome for Students -->
+        <tr>
+          <td colspan="3" style="border: 1px solid #000000; padding: 8px; vertical-align: top; height: 45px;">
+            <span style="font-family: Arial, sans-serif; font-size: 10pt; font-weight: bold;">Outcome for Students:</span> <span style="font-family: Arial, sans-serif; font-size: 9pt; font-style: italic; color: #475569;">By the end of the lesson, the students will have...</span><br/>
+            <span style="font-family: Arial, sans-serif; font-size: 10pt;">${outcomesVal}</span>
+          </td>
+        </tr>
+        <!-- Row 6: Anticipated problems header | Suggested solutions header -->
+        <tr>
+          <td style="border: 1px solid #000000; width: 50%; padding: 8px; vertical-align: top; background-color: #f8fafc;">
+            <span style="font-family: Arial, sans-serif; font-size: 10pt; font-weight: bold;">Anticipated problems</span> <span style="font-family: Arial, sans-serif; font-size: 9pt; font-style: italic; color: #475569;">(What potential difficulties might arise, such as management of tasks, timing problems, etc.)</span>
+          </td>
+          <td colspan="2" style="border: 1px solid #000000; width: 50%; padding: 8px; vertical-align: top; background-color: #f8fafc;">
+            <span style="font-family: Arial, sans-serif; font-size: 10pt; font-weight: bold;">Suggested solutions</span> <span style="font-family: Arial, sans-serif; font-size: 9pt; font-style: italic; color: #475569;">to anticipated problems (How will you resolve these issues?)</span>
+          </td>
+        </tr>
+        <!-- Rows for Problems & Solutions -->
+        ${problemsAndSolutionsHtml}
+      </table>
+      
+      <div class="footer-note">Add rows as necessary</div>
+      <div style="text-align: center; font-family: Arial, sans-serif; font-size: 10pt; margin-top: 15px;">1</div>
+      
+      <br style="page-break-before: always; clear: both;" />
+      
+      <!-- PAGE 2: STAGES AND PROCEDURES TABLE -->
+      ${logoHtml}
+      
+      <table style="width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 5px;">
         <thead>
           <tr>
-            <th style="width: 25%;">Stage</th>
-            <th style="width: 25%;">Objective & Pattern</th>
-            <th style="width: 50%;">Script / Dialogue</th>
+            <th style="border: 1px solid #000000; padding: 8px; width: 10%; text-align: left; vertical-align: top; background-color: #f8fafc;">
+              <span style="font-family: Arial, sans-serif; font-size: 10pt; font-weight: bold;">Time</span><br/>
+              <span style="font-family: Arial, sans-serif; font-size: 9pt; font-style: italic; font-weight: normal; color: #475569;">(mins)</span>
+            </th>
+            <th style="border: 1px solid #000000; padding: 8px; width: 25%; text-align: left; vertical-align: top; background-color: #f8fafc;">
+              <span style="font-family: Arial, sans-serif; font-size: 10pt; font-weight: bold;">Stage Aim</span><br/>
+              <span style="font-family: Arial, sans-serif; font-size: 9pt; font-style: italic; font-weight: normal; color: #475569;">(What is the purpose of this activity?)</span>
+            </th>
+            <th style="border: 1px solid #000000; padding: 8px; width: 40%; text-align: left; vertical-align: top; background-color: #f8fafc;">
+              <span style="font-family: Arial, sans-serif; font-size: 10pt; font-weight: bold;">Procedure</span><br/>
+              <span style="font-family: Arial, sans-serif; font-size: 9pt; font-style: italic; font-weight: normal; color: #475569;">(What are the students/the teacher doing?)</span>
+            </th>
+            <th style="border: 1px solid #000000; padding: 8px; width: 10%; text-align: left; vertical-align: top; background-color: #f8fafc;">
+              <span style="font-family: Arial, sans-serif; font-size: 10pt; font-weight: bold;">Interaction</span><br/>
+              <span style="font-family: Arial, sans-serif; font-size: 9pt; font-style: italic; font-weight: normal; color: #475569;">(Who is interacting with whom?)</span>
+            </th>
+            <th style="border: 1px solid #000000; padding: 8px; width: 15%; text-align: left; vertical-align: top; background-color: #f8fafc;">
+              <span style="font-family: Arial, sans-serif; font-size: 10pt; font-weight: bold;">Trainer's notes</span><br/>
+              <span style="font-family: Arial, sans-serif; font-size: 9pt; font-style: italic; font-weight: normal; color: #475569;">(Leave blank for tutor comments)</span>
+            </th>
           </tr>
         </thead>
         <tbody>
-  `;
-
-  currentLesson.stages.forEach(stage => {
-    const cleanScript = (stage.script || '').replace(/\\n/g, '<br/>').replace(/\n/g, '<br/>');
-    html += `
-      <tr>
-        <td>
-          <b>${stage.stageName}</b><br/>
-          <span style="font-size: 9pt; color: #666;">(${stage.duration})</span>
-        </td>
-        <td>
-          <p>${stage.objective}</p>
-          <span class="pattern-tag">${stage.pattern}</span>
-        </td>
-        <td>
-          <div class="script-text">${cleanScript}</div>
-        </td>
-      </tr>
-    `;
-  });
-
-  html += `
+          ${stagesHtml}
         </tbody>
       </table>
+      
+      <div class="footer-note">Add rows as necessary</div>
+      <div style="text-align: center; font-family: Arial, sans-serif; font-size: 10pt; margin-top: 15px;">2</div>
 
-      <h2>🖼️ SLIDES DESIGN</h2>
-      <table>
+      <br style="page-break-before: always; clear: both;" />
+
+      <!-- PAGE 3: SLIDES DESIGN -->
+      <table style="width: 100%; border: none; border-collapse: collapse; margin-bottom: 10px;">
+        <tr>
+          <td style="border: none; width: 60%;"><h2 style="font-family: Arial, sans-serif; font-size: 14pt; color: #1e293b; margin: 0;">🖼️ SLIDES DESIGN</h2></td>
+          <td style="border: none; width: 40%; text-align: right; vertical-align: middle;">
+            ${logoHtml}
+          </td>
+        </tr>
+      </table>
+
+      <table style="width: 100%; border-collapse: collapse; margin-top: 15px; margin-bottom: 15px;">
         <thead>
           <tr>
-            <th style="width: 10%;">No.</th>
-            <th style="width: 30%;">Slide Title & Keywords</th>
-            <th style="width: 60%;">Description & Image Prompt</th>
+            <th style="border: 1px solid #000000; padding: 8px; width: 10%; background-color: #f8fafc; font-weight: bold;">No.</th>
+            <th style="border: 1px solid #000000; padding: 8px; width: 35%; background-color: #f8fafc; font-weight: bold;">Slide Title & Keywords</th>
+            <th style="border: 1px solid #000000; padding: 8px; width: 55%; background-color: #f8fafc; font-weight: bold;">Description & Image Prompt</th>
           </tr>
         </thead>
         <tbody>
@@ -1113,14 +1293,14 @@ async function exportToWord() {
     const cleanPrompt = (slide.imagePrompt || '').replace(/\\n/g, '<br/>').replace(/\n/g, '<br/>');
     html += `
       <tr>
-        <td style="text-align: center;"><b>${slide.number}</b></td>
-        <td>
-          <b>${slide.title}</b><br/>
-          <span style="font-size: 9pt; color: #666; font-style: italic;">Keywords: ${slide.searchKeywords}</span>
+        <td style="border: 1px solid #000000; padding: 8px; text-align: center;"><b>${slide.number}</b></td>
+        <td style="border: 1px solid #000000; padding: 8px;">
+          <b>${slide.title}</b><br/><br/>
+          <span style="font-size: 9pt; color: #475569; font-style: italic;">Keywords: ${slide.searchKeywords}</span>
         </td>
-        <td>
-          <p><b>Description:</b> ${cleanDesc}</p>
-          <p style="color: #0284c7; font-size: 9.5pt;"><b>Image Prompt:</b> ${cleanPrompt}</p>
+        <td style="border: 1px solid #000000; padding: 8px;">
+          <p style="margin: 0 0 8px 0;"><b>Description:</b> ${cleanDesc}</p>
+          <p style="color: #0284c7; font-size: 9.5pt; margin: 0;"><b>Image Prompt:</b> ${cleanPrompt}</p>
         </td>
       </tr>
     `;
@@ -1130,22 +1310,44 @@ async function exportToWord() {
         </tbody>
       </table>
 
-      <h2>📦 TEACHING MATERIALS & RESOURCE LINKS</h2>
-      <h3>📹 Video Resources Suggestions</h3>
-      <p>${(currentLesson.materials.videoLinksDescription || 'None suggested').replace(/\\n/g, '<br/>').replace(/\n/g, '<br/>')}</p>
+      <br style="page-break-before: always; clear: both;" />
 
-      <h3>🎵 Audio Script / Listening Prompts</h3>
-      <p>${(currentLesson.materials.audioScript || 'None suggested').replace(/\\n/g, '<br/>').replace(/\n/g, '<br/>')}</p>
+      <!-- PAGE 4: TEACHING MATERIALS & RESOURCE LINKS -->
+      <table style="width: 100%; border: none; border-collapse: collapse; margin-bottom: 10px;">
+        <tr>
+          <td style="border: none; width: 60%;"><h2 style="font-family: Arial, sans-serif; font-size: 14pt; color: #1e293b; margin: 0;">📦 TEACHING MATERIALS & RESOURCE LINKS</h2></td>
+          <td style="border: none; width: 40%; text-align: right; vertical-align: middle;">
+            ${logoHtml}
+          </td>
+        </tr>
+      </table>
 
-      <h3>🎮 Classroom Game Play & Activities</h3>
-      <p>${(currentLesson.materials.games || 'None suggested').replace(/\\n/g, '<br/>').replace(/\n/g, '<br/>')}</p>
+      <h3 style="font-family: Arial, sans-serif; font-size: 11pt; color: #4f46e5; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-top: 20px;">📹 Video Resources Suggestions</h3>
+      <p style="font-size: 10.5pt; line-height: 1.5; color: #334155;">${(currentLesson.materials.videoLinksDescription || 'None suggested').replace(/\\n/g, '<br/>').replace(/\n/g, '<br/>')}</p>
 
-      <h2>📝 WORKSHEETS & HOMEWORK</h2>
-      <h3>📄 Student Worksheet</h3>
-      <p>${(currentLesson.materials.worksheets || 'None suggested').replace(/\\n/g, '<br/>').replace(/\n/g, '<br/>')}</p>
+      <h3 style="font-family: Arial, sans-serif; font-size: 11pt; color: #4f46e5; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-top: 25px;">🎵 Audio Script / Listening Prompts</h3>
+      <div style="font-family: 'Courier New', Courier, monospace; font-size: 10pt; color: #334155; background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; white-space: pre-wrap; line-height: 1.5;">${(currentLesson.materials.audioScript || 'None suggested').replace(/\\n/g, '\n')}</div>
 
-      <h3>🏠 Homework Tasks</h3>
-      <p>${(currentLesson.materials.homework || 'None suggested').replace(/\\n/g, '<br/>').replace(/\n/g, '<br/>')}</p>
+      <h3 style="font-family: Arial, sans-serif; font-size: 11pt; color: #4f46e5; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-top: 25px;">🎮 Classroom Game Play & Activities</h3>
+      <p style="font-size: 10.5pt; line-height: 1.5; color: #334155;">${(currentLesson.materials.games || 'None suggested').replace(/\\n/g, '<br/>').replace(/\n/g, '<br/>')}</p>
+
+      <br style="page-break-before: always; clear: both;" />
+
+      <!-- PAGE 5: WORKSHEETS & HOMEWORK -->
+      <table style="width: 100%; border: none; border-collapse: collapse; margin-bottom: 10px;">
+        <tr>
+          <td style="border: none; width: 60%;"><h2 style="font-family: Arial, sans-serif; font-size: 14pt; color: #1e293b; margin: 0;">📝 WORKSHEETS & HOMEWORK</h2></td>
+          <td style="border: none; width: 40%; text-align: right; vertical-align: middle;">
+            ${logoHtml}
+          </td>
+        </tr>
+      </table>
+
+      <h3 style="font-family: Arial, sans-serif; font-size: 11pt; color: #4f46e5; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-top: 20px;">📄 Student Worksheet</h3>
+      <p style="font-size: 10.5pt; line-height: 1.5; color: #334155;">${(currentLesson.materials.worksheets || 'None suggested').replace(/\\n/g, '<br/>').replace(/\n/g, '<br/>')}</p>
+
+      <h3 style="font-family: Arial, sans-serif; font-size: 11pt; color: #4f46e5; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-top: 25px;">🏠 Homework Tasks</h3>
+      <p style="font-size: 10.5pt; line-height: 1.5; color: #334155;">${(currentLesson.materials.homework || 'None suggested').replace(/\\n/g, '<br/>').replace(/\n/g, '<br/>')}</p>
     </body>
     </html>
   `;
